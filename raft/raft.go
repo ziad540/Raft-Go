@@ -38,26 +38,33 @@ type LogEntry struct {
 	Term    int
 }
 
+type serverRole int
+
+const (
+	follower serverRole = iota
+	candidate
+	leader
+)
+
 // A Go object implementing a single Raft peer.
 type Raft struct {
 	mu    sync.Mutex          // Lock to protect shared access to this peer's state
 	peers []*labrpc.ClientEnd // RPC end points of all peers
 	me    int                 // this peer's index into peers[]
 
-	// Your data here (3A, 3B).
-	// Look at the paper's Figure 2 for a description of what
-	// state a Raft server must maintain.
-
+	// Protected by mu after initialization.
+	role        serverRole
+	currentTerm int // Latest term this peer has seen; starts at 0.
+	votedFor    int // Peer ID voted for in currentTerm; -1 means no vote.
 }
 
 // return currentTerm and whether this server
 // believes it is the leader.
 func (rf *Raft) GetState() (int, bool) {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 
-	var term int
-	var isleader bool
-	// Your code here (3A).
-	return term, isleader
+	return rf.currentTerm, rf.role == leader
 }
 
 // example RequestVote RPC arguments structure.
@@ -167,7 +174,9 @@ func Make(peers []*labrpc.ClientEnd, me int, applyCh chan ApplyMsg) *Raft {
 	rf.peers = peers
 	rf.me = me
 
-	// Your initialization code here (3A, 3B).
+	rf.role = follower
+	rf.currentTerm = 0
+	rf.votedFor = -1
 
 	return rf
 }
