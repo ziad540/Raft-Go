@@ -133,6 +133,7 @@ func (rf *Raft) advanceCommitLocked() {
 
 // One applier owns delivery order. It never holds rf.mu during a channel send.
 func (rf *Raft) applier() {
+	
 	defer close(rf.applierDone)
 	for {
 		rf.mu.Lock()
