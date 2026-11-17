@@ -83,7 +83,7 @@ func TestHeartbeatHigherTermReply(t *testing.T) {
 	rf.role = leader
 	rf.currentTerm = 3
 	rf.votedFor = 0
-	rf.handleAppendEntriesReply(AppendEntriesReply{Term: 5})
+	rf.handleAppendEntriesReply(1, AppendEntriesArgs{Term: 3}, AppendEntriesReply{Term: 5})
 	if term, isLeader := rf.GetState(); term != 5 || isLeader || rf.votedFor != -1 {
 		t.Fatalf("after higher term reply: term %d, leader %v, vote %d", term, isLeader, rf.votedFor)
 	}
@@ -140,10 +140,15 @@ func TestKillStopsElectionTicker(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("ticker did not stop")
 	}
+	select {
+	case <-rf.applierDone:
+	case <-time.After(time.Second):
+		t.Fatal("applier did not stop")
+	}
 	term, _ := rf.GetState()
 	rf.startElection()
 	rf.handleRequestVoteReply(term, RequestVoteReply{Term: term + 1, VoteGranted: true})
-	rf.handleAppendEntriesReply(AppendEntriesReply{Term: term + 1})
+	rf.handleAppendEntriesReply(0, AppendEntriesArgs{Term: term}, AppendEntriesReply{Term: term + 1})
 	var voteReply RequestVoteReply
 	rf.RequestVote(&RequestVoteArgs{Term: term + 1, CandidateId: 1}, &voteReply)
 	var heartbeatReply AppendEntriesReply
